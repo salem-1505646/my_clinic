@@ -74,8 +74,8 @@
             <div class="grid">
                 <div class="card">
                     <h3>➕ Nouveau Patient</h3>
-                    <label>Nom :</label><input type="text" id="new-patient-name">
-                    <label>Âge :</label><input type="number" id="new-patient-age">
+                    <label>Nom :</label><input type="text" id="new-patient-name" placeholder="Nom complet">
+                    <label>Âge :</label><input type="number" id="new-patient-age" placeholder="Âge">
                     <button class="btn btn-primary" onclick="addPatient()">Ajouter</button>
                 </div>
                 <div class="card">
@@ -178,37 +178,74 @@
             appId: "1:195782279123:web:03ee3007c35679cbbf7926"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        // Initialize Firebase with fallback
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+        } catch (e) {
+            console.warn("Firebase Init Error:", e);
+        }
 
-        // 2. Variables
+        // 2. State
         const PIN = "1234";
-        let data = { waiting: [], archive: [], current: null, settings: { name: "Dr. Zohra", specialty: "Gynécologie", address: "Constantine", phone: "0555...", logo: "" } };
+        let data = { 
+            waiting: [], 
+            archive: [], 
+            current: null, 
+            settings: { name: "Dr. Zohra", specialty: "Gynécologie", address: "Constantine", phone: "0555...", logo: "" } 
+        };
         let tempMeds = [];
 
-        // 3. Functions
-        window.onload = () => {
-            db.ref('clinic_main_data').once('value').then((snapshot) => {
-                if (snapshot.exists()) {
-                    data = snapshot.val();
-                } else {
-                    const saved = localStorage.getItem('clinic_db');
-                    if (saved) data = JSON.parse(saved);
-                }
+        // 3. Lifecycle
+        window.onload = function() {
+            // Priority: Cloud -> Local -> Default
+            if (db) {
+                db.ref('clinic_main_data').once('value').then((snapshot) => {
+                    if (snapshot.exists()) {
+                        data = snapshot.val();
+                        console.log("Cloud Data Loaded Successfully");
+                    } else {
+                        loadFromLocal();
+                    }
+                    loadUI();
+                }).catch((err) => {
+                    console.error("Cloud fetch failed:", err);
+                    loadFromLocal();
+                    loadUI();
+                });
+            } else {
+                loadFromLocal();
                 loadUI();
-            });
-            setInterval(saveData, 30000); // صامتة
+            }
+            
+            setInterval(saveData, 30000); // Silent autosave
         };
 
+        function loadFromLocal() {
+            const saved = localStorage.getItem('clinic_db');
+            if (saved) {
+                data = JSON.parse(saved);
+                console.log("Local Data Loaded");
+            }
+        }
+
+        // 4. Core Logic
         function saveData() {
-            if(document.getElementById('clinic-name')) {
-                data.settings.name = document.getElementById('clinic-name').value;
+            // Update settings from inputs if available
+            const nameEl = document.getElementById('clinic-name');
+            if(nameEl) {
+                data.settings.name = nameEl.value;
                 data.settings.specialty = document.getElementById('clinic-specialty').value;
                 data.settings.address = document.getElementById('clinic-address').value;
                 data.settings.phone = document.getElementById('clinic-phone').value;
             }
+
+            // Persistence
             localStorage.setItem('clinic_db', JSON.stringify(data));
-            db.ref('clinic_main_data').set(data);
+            if (db) {
+                db.ref('clinic_main_data').set(data).catch(e => console.error("Cloud save failed", e));
+            }
         }
 
         function loadUI() {
@@ -217,7 +254,7 @@
             if(!list || !docList) return;
 
             list.innerHTML = ''; docList.innerHTML = '';
-            data.waiting.forEach(p => {
+            (data.waiting || []).forEach(p => {
                 list.innerHTML += `<li><div><strong>${p.name}</strong><br><small>${p.age} ans | 🕒 ${p.time}</small></div>
                 <button class="btn btn-outline" onclick="toDoctor(${p.id})">Entrer</button></li>`;
                 docList.innerHTML += `<li>${p.name} (${p.age} ans)</li>`;
@@ -227,49 +264,66 @@
                 document.getElementById('current-patient-name').innerText = data.current.name;
                 document.getElementById('reception-current-patient-name').innerText = data.current.name;
                 document.getElementById('reception-compact-banner').classList.add('active');
+            } else {
+                document.getElementById('current-patient-name').innerText = "En attente...";
+                document.getElementById('reception-current-patient-name').innerText = "(Vide)";
+                document.getElementById('reception-compact-banner').classList.remove('active');
             }
             
-            if(document.getElementById('clinic-name')) {
-                document.getElementById('clinic-name').value = data.settings.name;
+            const clinicNameInput = document.getElementById('clinic-name');
+            if(clinicNameInput) {
+                clinicNameInput.value = data.settings.name;
                 document.getElementById('clinic-specialty').value = data.settings.specialty;
                 document.getElementById('clinic-address').value = data.settings.address;
                 document.getElementById('clinic-phone').value = data.settings.phone;
             }
 
             if(data.settings.logo) {
-                document.getElementById('main-header-logo').src = data.settings.logo;
-                document.getElementById('main-header-logo').style.display = 'block';
+                const headLogo = document.getElementById('main-header-logo');
+                headLogo.src = data.settings.logo;
+                headLogo.style.display = 'block';
                 document.getElementById('print-logo-img').src = data.settings.logo;
             }
         }
 
         function addPatient() {
-            let n = document.getElementById('new-patient-name').value;
-            let a = document.getElementById('new-patient-age').value;
-            if(!n) { alert("Nom requis!"); return; }
+            const nameField = document.getElementById('new-patient-name');
+            const ageField = document.getElementById('new-patient-age');
+            const name = nameField.value.trim();
+            
+            if(!name) {
+                alert("Erreur: Veuillez entrer le nom du patient");
+                return;
+            }
+            
+            if (!data.waiting) data.waiting = [];
             
             data.waiting.push({ 
                 id: Date.now(), 
-                name: n, 
-                age: a, 
+                name: name, 
+                age: ageField.value || "0", 
                 time: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) 
             });
             
             saveData();
             loadUI();
-            document.getElementById('new-patient-name').value = ''; 
-            document.getElementById('new-patient-age').value = '';
+            nameField.value = ''; 
+            ageField.value = '';
         }
 
         function toDoctor(id) {
-            let idx = data.waiting.findIndex(x => x.id === id);
+            let idx = (data.waiting || []).findIndex(x => x.id === id);
+            if (idx === -1) return;
             data.current = data.waiting.splice(idx, 1)[0];
-            saveData(); loadUI();
+            saveData(); 
+            loadUI();
             showTab('doctor', document.querySelector('.tab-doctor'));
         }
 
         function finishExamination() {
             if(!data.current) return;
+            if(!data.archive) data.archive = [];
+            
             data.archive.push({
                 ...data.current, 
                 date: new Date().toLocaleDateString('fr-FR'), 
@@ -277,16 +331,18 @@
                 diag: document.getElementById('diagnostic-text').value, 
                 meds: [...tempMeds]
             });
-            data.current = null; tempMeds = [];
+            
+            data.current = null; 
+            tempMeds = [];
             document.getElementById('prescription-list').innerHTML = '';
             document.getElementById('diagnostic-text').value = '';
-            document.getElementById('reception-current-patient-name').innerText = '(Vide)';
-            document.getElementById('reception-compact-banner').classList.remove('active');
-            saveData(); loadUI();
+            saveData(); 
+            loadUI();
         }
 
+        // 5. Utility UI
         function secureTab(id, btn) {
-            if(prompt("Code PIN:") === PIN) showTab(id, btn); else alert("Accès refusé!");
+            if(prompt("🔒 Code PIN requis :") === PIN) showTab(id, btn); else alert("❌ Accès refusé");
         }
 
         function showTab(id, btn) {
@@ -301,7 +357,7 @@
             if(!n) return;
             tempMeds.push({n, q, p});
             let h = '';
-            tempMeds.forEach((m, i) => h += `<li class="med-item"><strong>${m.n}</strong> <span>${m.q} bte - ${m.p} /jrs</span> <button onclick="tempMeds.splice(${i},1);addMedicine()">❌</button></li>`);
+            tempMeds.forEach((m, i) => h += `<li class="med-item"><strong>${m.n}</strong> <span>${m.q} bte - ${m.p} /jrs</span> <button onclick="tempMeds.splice(${i},1);addMedicine()" style="background:none; border:none; cursor:pointer;">❌</button></li>`);
             document.getElementById('prescription-list').innerHTML = h;
             document.getElementById('med-name').value = '';
         }
@@ -313,7 +369,7 @@
             document.getElementById('print-footer-phone').innerText = data.settings.phone;
             document.getElementById('print-footer-address').innerText = data.settings.address;
             document.getElementById('print-patient-name').innerText = data.current.name;
-            document.getElementById('print-patient-age').innerText = data.current.age + " ans";
+            document.getElementById('print-patient-age').innerText = (data.current.age || "0") + " ans";
             document.getElementById('print-date').innerText = new Date().toLocaleDateString('fr-FR');
             let h = '';
             tempMeds.forEach(m => h += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px dashed #eee;"><strong>💊 ${m.n}</strong><span>${m.q} bte — ${m.p} /jrs</span></div>`);
@@ -324,15 +380,15 @@
         function searchArchive() {
             let q = document.getElementById('search-input').value.toLowerCase();
             let h = '';
-            data.archive.filter(r => r.name.toLowerCase().includes(q)).forEach(r => h += `<div class="card" style="margin-bottom:10px;"><h4>${r.name} (${r.date})</h4><p>Diag: ${r.diag}</p></div>`);
-            document.getElementById('search-results').innerHTML = h || "Aucun résultat";
+            (data.archive || []).filter(r => r.name.toLowerCase().includes(q)).forEach(r => h += `<div class="card" style="margin-bottom:10px;"><h4>${r.name} (${r.date})</h4><p>Diag: ${r.diag}</p></div>`);
+            document.getElementById('search-results').innerHTML = h || "Aucun résultat trouvé.";
         }
 
         function calculateStats() {
             const start = document.getElementById('stat-start-date').value;
             const end = document.getElementById('stat-end-date').value;
             if(!start || !end) return;
-            const filtered = data.archive.filter(r => r.iso >= start && r.iso <= end);
+            const filtered = (data.archive || []).filter(r => r.iso >= start && r.iso <= end);
             document.getElementById('stat-filtered-count').innerText = filtered.length;
             document.getElementById('stat-results-box').style.display = 'block';
         }
@@ -347,16 +403,24 @@
             const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = `clinique_backup.json`;
+            a.download = `backup_clinique_${new Date().toISOString().split('T')[0]}.json`;
             a.click();
         }
 
         function importDatabase(e) {
             const reader = new FileReader();
-            reader.onload = (ev) => { data = JSON.parse(ev.target.result); saveData(); location.reload(); };
+            reader.onload = (ev) => { 
+                try {
+                    data = JSON.parse(ev.target.result); 
+                    saveData(); 
+                    alert("✅ Données importées avec succès");
+                    location.reload(); 
+                } catch(e) { alert("❌ Erreur lors de l'importation"); }
+            };
             reader.readAsText(e.target.files[0]);
         }
     </script>
 </body>
 </html>
+
 
