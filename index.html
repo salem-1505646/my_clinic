@@ -3,26 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion de Clinique - Professional Edition</title>
+    <title>Gestion de Clinique - Original Version</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <style>
         :root {
-            --primary-color: #0284c7; 
-            --doctor-color: #059669; 
-            --archive-color: #7c3aed; 
-            --stats-color: #db2777; 
-            --settings-color: #ea580c; 
-            --bg-color: #f1f5f9; 
+            --primary-color: #0284c7; --doctor-color: #059669; --archive-color: #7c3aed; 
+            --stats-color: #db2777; --settings-color: #ea580c; --bg-color: #f1f5f9; 
             --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
         }
-        
         body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; color: #334155; }
         #print-area { display: none; }
 
-        .header { background: white; padding: 20px; border-radius: 16px; box-shadow: var(--card-shadow); margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 15px; border: 1px solid #e2e8f0; }
+        /* التصميم الأصلي للترويسة والتبويبات */
+        .header { background: #fff; padding: 20px; border-radius: 16px; box-shadow: var(--card-shadow); margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 15px; border: 1px solid #e2e8f0; }
         .header h1 { margin: 0; color: #0f172a; font-weight: 800; font-size: 28px; }
         
         .tabs { display: flex; gap: 10px; margin-bottom: 25px; justify-content: center; flex-wrap: wrap; }
@@ -34,9 +30,9 @@
         .tab-stats.active { background: var(--stats-color); }
         .tab-settings.active { background: var(--settings-color); }
         
-        .panel { display: none; animation: fadeIn 0.4s ease-out; }
-        .panel.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .panel { display: none; }
+        .panel.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
         
         .grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
         @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } }
@@ -45,27 +41,28 @@
         .card h3 { margin-top: 0; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; font-weight: 700;}
         
         input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; background: #f8fafc; }
-        .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; color: white; font-weight: 700; cursor: pointer; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; color: white; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .btn-primary { background-color: var(--primary-color); }
         .btn-success { background-color: var(--doctor-color); }
-        .btn-outline { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); width: auto; padding: 8px 16px; border-radius: 8px; }
 
-        .waiting-list li { padding: 16px; background: #f8fafc; border-radius: 10px; margin-bottom: 12px; border-left: 5px solid var(--primary-color); display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; border-left-width: 5px; }
-        .compact-banner { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 12px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .compact-banner.active { background: #ecfdf5; border-color: #a7f3d0; border-left: 5px solid #059669; }
+        .waiting-list-item { padding: 16px; background: #f8fafc; border-radius: 10px; margin-bottom: 12px; border-left: 5px solid var(--primary-color); display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; border-left-width: 5px; }
+        
+        /* شارة الحالة الأصلية */
+        .status-badge { padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 15px; display: inline-block; }
+        .busy { background: #fee2e2; color: #b91c1c; }
+        .free { background: #dcfce7; color: #15803d; }
 
-        .stats-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-        .stat-card { padding: 20px; border-radius: 15px; color: white; text-align: center; font-weight: bold; }
+        /* إحصائيات الطبيب الأصلية */
+        .stats-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .stat-card { padding: 20px; border-radius: 12px; color: white; text-align: center; font-weight: bold; }
         .stat-waiting { background: linear-gradient(135deg, #38bdf8, #0284c7); }
-        .stat-examined { background: linear-gradient(135deg, #34d399, #059669); }
-
-        .med-item { background: #fff; border: 1px solid #ddd; padding: 8px 12px; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;}
+        .stat-done { background: linear-gradient(135deg, #34d399, #059669); }
 
         @media print {
             .no-print { display: none !important; }
             @page { margin: 0; size: A5 portrait; }
             body { background: white; padding: 0; }
-            #print-area { display: flex; flex-direction: column; height: 100vh; position: relative; overflow: hidden; padding: 40px; }
+            #print-area { display: flex; flex-direction: column; height: 100vh; position: relative; overflow: hidden; }
             .top-shape-dark { position: absolute; top: 0; right: 0; width: 60%; height: 75px; background: #0d8a57; border-bottom-left-radius: 80px; display: flex; justify-content: flex-end; padding: 10px 25px; color: white; font-size: 12px; }
             .print-header { display: flex; justify-content: space-between; padding: 35px 25px 5px; position: relative; align-items: flex-end; }
             .print-logo img { width: 65px; height: 65px; object-fit: contain; }
@@ -78,107 +75,76 @@
 <body>
 
     <div class="no-print">
-        <div class="header">
-            <img id="main-header-logo" src="" style="height: 45px; display: none;">
-            <h1>Gestion de Clinique</h1>
-        </div>
+        <div class="header"><h1>🏥 Gestion de Clinique</h1></div>
 
         <div class="tabs">
-            <div class="tab-btn tab-reception active" onclick="showTab('reception', this)">👩‍💻 Réception</div>
-            <div class="tab-btn tab-doctor" onclick="secureTab('doctor', this)">🩺 Médecin</div>
-            <div class="tab-btn tab-archive" onclick="secureTab('archive', this)">🗂️ Archives</div>
-            <div class="tab-btn tab-stats" onclick="secureTab('stats', this)">📊 Statistiques</div>
-            <div class="tab-btn tab-settings" onclick="secureTab('settings', this)">⚙️ Configuration</div>
+            <button class="tab-btn tab-reception active" onclick="showTab('reception', this)">👩‍💻 Réception</button>
+            <button class="tab-btn tab-doctor" onclick="secureTab('doctor', this)">🩺 Médecin</button>
+            <button class="tab-btn tab-archive" onclick="secureTab('archive', this)">🗂️ Archives</button>
+            <button class="tab-btn tab-settings" onclick="secureTab('settings', this)">⚙️ Paramètres</button>
         </div>
 
         <div id="reception" class="panel active">
             <div class="grid">
                 <div class="card">
                     <h3>➕ Nouveau Patient</h3>
-                    <label>Nom :</label><input type="text" id="new-patient-name">
-                    <label>Âge :</label><input type="number" id="new-patient-age">
+                    <input type="text" id="p-name" placeholder="Nom complet">
+                    <input type="number" id="p-age" placeholder="Âge">
                     <button class="btn btn-primary" onclick="addPatient()">Ajouter</button>
                 </div>
                 <div class="card">
-                    <div id="reception-compact-banner" class="compact-banner">
-                        <span style="font-weight: bold;">🩺 Cabinet :</span>
-                        <span id="reception-current-patient-name">(Vide)</span>
-                    </div>
+                    <div id="status-area"></div>
                     <h3>📋 Salle d'attente</h3>
-                    <ul class="waiting-list" id="reception-waiting-list" style="list-style:none; padding:0;"></ul>
+                    <div id="reception-list"></div>
                 </div>
             </div>
         </div>
 
         <div id="doctor" class="panel">
             <div class="stats-container">
-                <div class="stat-card stat-waiting">⏳ Attente: <span id="stat-waiting-count">0</span></div>
-                <div class="stat-card stat-examined">✅ Examinés: <span id="stat-examined-count">0</span></div>
+                <div class="stat-card stat-waiting">⏳ Attente: <span id="count-waiting">0</span></div>
+                <div class="stat-card stat-done">✅ Examinés: <span id="count-done">0</span></div>
             </div>
             <div class="grid">
                 <div class="card" style="border-top: 5px solid var(--doctor-color);">
                     <h3>🔔 Consultation</h3>
-                    <div id="current-patient-box" style="background:#f0fdf4; padding:15px; border-radius:12px; margin-bottom:15px; text-align:center;">
-                        <h4 id="current-patient-name" style="margin:0;">Aucun patient</h4>
+                    <div id="current-box" style="background:#f0fdf4; padding:15px; border-radius:12px; margin-bottom:15px; text-align:center;">
+                        <h4 id="current-p-display" style="margin:0;">Aucun patient</h4>
                     </div>
-                    <label>Diagnostic :</label><textarea id="diagnostic-text" rows="2"></textarea>
-                    <div style="background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #eee; margin-bottom:15px;">
+                    <textarea id="diag-text" rows="3" placeholder="Diagnostic..."></textarea>
+                    <div style="background:#f8fafc; padding:15px; border-radius:12px; border:1px solid #eee; margin-bottom:15px;">
                         <label>💊 Ordonnance :</label>
                         <div style="display:flex; gap:5px; margin-bottom:10px;">
-                            <input type="text" id="med-name" placeholder="Médicament" style="flex:2; margin:0;">
-                            <input type="text" id="med-dose" placeholder="Dose" style="flex:1; margin:0;">
-                            <button class="btn btn-success" style="width:auto; padding:10px;" onclick="addMedicine()">➕</button>
+                            <input type="text" id="m-name" placeholder="Médicament" style="flex:2">
+                            <input type="text" id="m-dose" placeholder="Dose" style="flex:1">
+                            <button class="btn btn-success" style="width:auto; padding:10px" onclick="addMed()">➕</button>
                         </div>
-                        <ul id="prescription-list" style="list-style:none; padding:0;"></ul>
-                        <button class="btn btn-primary" onclick="printDocument()">🖨️ Imprimer</button>
+                        <div id="med-list"></div>
+                        <button class="btn btn-primary" style="margin-top:10px" onclick="printPrescription()">🖨️ Imprimer</button>
                     </div>
-                    <button class="btn btn-success" onclick="finishExamination()">✅ Terminer</button>
+                    <button class="btn btn-success" onclick="finishPatient()">✅ Terminer</button>
                 </div>
-                <div class="card"><h3>👥 Suivants</h3><ul class="waiting-list" id="doctor-waiting-list" style="list-style:none; padding:0;"></ul></div>
+                <div class="card"><h3>👥 Suivants</h3><div id="doctor-list"></div></div>
             </div>
         </div>
-
-        <div id="archive" class="panel">
-            <div class="card" style="max-width:800px; margin:auto;">
-                <h3>🔍 Archives</h3>
-                <input type="text" id="search-input" onkeyup="searchArchive()" placeholder="Chercher un nom...">
-                <div id="search-results" style="margin-top:20px;"></div>
-            </div>
+        
         </div>
-
-        <div id="settings" class="panel">
-            <div class="grid">
-                <div class="card">
-                    <h3>⚙️ Clinique</h3>
-                    <label>Docteur :</label><input type="text" id="clinic-name" onchange="saveSettings()">
-                    <label>Spécialité :</label><input type="text" id="clinic-specialty" onchange="saveSettings()">
-                    <label>Tel :</label><input type="text" id="clinic-phone" onchange="saveSettings()">
-                    <label>Logo :</label><input type="file" accept="image/*" onchange="handleLogo(event)">
-                </div>
-                <div class="card">
-                    <h3>💾 Backup</h3>
-                    <button class="btn btn-primary" onclick="exportDatabase()">📥 Download Backup</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div id="print-area">
         <div class="top-shape-dark"><span>ORDONNANCE</span></div>
         <div class="print-header">
             <div class="print-logo"><img id="print-logo-img" src=""></div>
-            <div class="print-clinic-info"><h1 id="print-clinic-name"></h1><p id="print-clinic-specialty"></p></div>
+            <div class="print-clinic-info"><h1 id="print-dr-name">Dr. Rashid</h1><p id="print-specialty">Gynécologie</p></div>
         </div>
         <div class="patient-info-grid">
-            <div>Patient: <span id="print-patient-name"></span></div>
-            <div>Date: <span id="print-date"></span></div>
+            <div>Patient: <span id="pr-name"></span></div>
+            <div>Date: <span id="pr-date"></span></div>
         </div>
-        <div class="print-body"><div id="print-document-content"></div></div>
-        <div class="footer-shape-dark"><span id="print-footer-phone"></span></div>
+        <div id="pr-meds" style="padding:20px; font-size:18px;"></div>
+        <div class="footer-shape-dark">Contact: 0555 00 00 00</div>
     </div>
 
     <script>
-        // إعدادات Firebase الخاصة بك
         const firebaseConfig = {
             apiKey: "AIzaSyDBYw9gZW-8uvZo6s3DGJhdWEInyPxvNn8",
             authDomain: "myclinic-c1ae8.firebaseapp.com",
@@ -188,128 +154,99 @@
             messagingSenderId: "195782279123",
             appId: "1:195782279123:web:03ee3007c35679cbbf7926"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const PIN = "1234";
-
-        let data = { 
-            waitingList: [], 
-            archive: [], 
-            currentPatient: null, 
-            settings: { name: "Dr. Rashid", specialty: "Gynécologie", phone: "0555...", logo: "" },
-            examinedToday: 0
-        };
+        let data = { waiting: [], archive: [], current: null, doneToday: 0 };
         let tempMeds = [];
 
-        // المزامنة اللحظية
-        db.ref('clinic_main_data').on('value', (snapshot) => {
-            if (snapshot.exists()) {
-                data = snapshot.val();
-                loadUI();
-            }
+        db.ref('clinic_main_data').on('value', (snap) => {
+            if(snap.exists()) { data = snap.val(); render(); }
         });
 
-        function loadUI() {
-            const list = document.getElementById('reception-waiting-list');
-            const docList = document.getElementById('doctor-waiting-list');
-            list.innerHTML = ''; docList.innerHTML = '';
+        function render() {
+            const rList = document.getElementById('reception-list');
+            const dList = document.getElementById('doctor-list');
+            rList.innerHTML = ''; dList.innerHTML = '';
             
-            (data.waitingList || []).forEach(p => {
-                list.innerHTML += `<li><div><strong>${p.name}</strong><br><small>${p.age} ans</small></div>
-                                   <button class="btn btn-outline" onclick="toDoctor(${p.id})">Entrer</button></li>`;
-                docList.innerHTML += `<li>${p.name} (${p.age} ans)</li>`;
+            (data.waiting || []).forEach(p => {
+                rList.innerHTML += `<div class="waiting-list-item"><span><b>${p.name}</b> (${p.age})</span>
+                <button class="btn" style="width:auto; padding:5px 15px; background:var(--primary-color)" onclick="toDoctor(${p.id})">Entrer</button></div>`;
+                dList.innerHTML += `<div class="waiting-list-item">${p.name}</div>`;
             });
 
-            document.getElementById('stat-waiting-count').innerText = (data.waitingList || []).length;
-            document.getElementById('stat-examined-count').innerText = data.examinedToday || 0;
-
-            if (data.currentPatient) {
-                document.getElementById('current-patient-name').innerText = data.currentPatient.name;
-                document.getElementById('reception-current-patient-name').innerText = data.currentPatient.name;
-                document.getElementById('reception-compact-banner').classList.add('active');
+            const status = document.getElementById('status-area');
+            if(data.current) {
+                status.innerHTML = `<span class="status-badge busy">🔴 Occupé: ${data.current.name}</span>`;
+                document.getElementById('current-p-display').innerText = data.current.name;
             } else {
-                document.getElementById('current-patient-name').innerText = "Aucun patient";
-                document.getElementById('reception-current-patient-name').innerText = "(Vide)";
-                document.getElementById('reception-compact-banner').classList.remove('active');
+                status.innerHTML = `<span class="status-badge free">🟢 Libre</span>`;
+                document.getElementById('current-p-display').innerText = "Aucun patient";
             }
+
+            document.getElementById('count-waiting').innerText = (data.waiting || []).length;
+            document.getElementById('count-done').innerText = data.doneToday || 0;
         }
 
+        function addPatient() {
+            const n = document.getElementById('p-name'), a = document.getElementById('p-age');
+            if(!n.value) return alert("Nom requis");
+            if(!data.waiting) data.waiting = [];
+            data.waiting.push({ id: Date.now(), name: n.value, age: a.value });
+            save(); n.value = ''; a.value = '';
+        }
+
+        function toDoctor(id) {
+            if(data.current) return alert("Cabinet déjà occupé !");
+            const idx = data.waiting.findIndex(x => x.id === id);
+            data.current = data.waiting.splice(idx, 1)[0];
+            save();
+            alert("Patient dirigé vers le médecin.");
+        }
+
+        function addMed() {
+            const n = document.getElementById('m-name'), d = document.getElementById('m-dose');
+            if(!n.value) return;
+            tempMeds.push({ n: n.value, d: d.value });
+            let h = '';
+            tempMeds.forEach((m, i) => h += `<div class="waiting-list-item">${m.n} - ${m.d} <button onclick="tempMeds.splice(${i},1);addMed()">❌</button></div>`);
+            document.getElementById('med-list').innerHTML = h;
+            n.value = ''; d.value = '';
+        }
+
+        function finishPatient() {
+            if(!data.current) return;
+            if(!data.archive) data.archive = [];
+            data.archive.push({ ...data.current, diag: document.getElementById('diag-text').value, date: new Date().toLocaleDateString() });
+            data.current = null;
+            data.doneToday = (data.doneToday || 0) + 1;
+            tempMeds = [];
+            document.getElementById('med-list').innerHTML = '';
+            document.getElementById('diag-text').value = '';
+            save();
+        }
+
+        function printPrescription() {
+            if(!data.current) return;
+            document.getElementById('pr-name').innerText = data.current.name;
+            document.getElementById('pr-date').innerText = new Date().toLocaleDateString();
+            let h = '';
+            tempMeds.forEach(m => h += `<p>• <b>${m.n}</b> : ${m.d}</p>`);
+            document.getElementById('pr-meds').innerHTML = h;
+            window.print();
+        }
+
+        function save() { db.ref('clinic_main_data').set(data); }
         function showTab(id, btn) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             btn.classList.add('active');
         }
-
-        function secureTab(id, btn) { if(prompt("Code PIN:") === PIN) showTab(id, btn); }
-
-        function addPatient() {
-            let n = document.getElementById('new-patient-name').value;
-            let a = document.getElementById('new-patient-age').value;
-            if(!n) return;
-            if(!data.waitingList) data.waitingList = [];
-            data.waitingList.push({ id: Date.now(), name: n, age: a });
-            sync();
-            document.getElementById('new-patient-name').value = '';
-            document.getElementById('new-patient-age').value = '';
-        }
-
-        function toDoctor(id) {
-            let idx = data.waitingList.findIndex(x => x.id === id);
-            data.currentPatient = data.waitingList.splice(idx, 1)[0];
-            sync();
-            showTab('doctor', document.querySelector('.tab-doctor'));
-        }
-
-        function addMedicine() {
-            let n = document.getElementById('med-name').value, d = document.getElementById('med-dose').value;
-            if(!n) return;
-            tempMeds.push({n, d});
-            renderMeds();
-            document.getElementById('med-name').value = '';
-            document.getElementById('med-dose').value = '';
-        }
-
-        function renderMeds() {
-            let h = '';
-            tempMeds.forEach((m, i) => h += `<li class="med-item">${m.n} (${m.d}) <button onclick="tempMeds.splice(${i},1);renderMeds()">❌</button></li>`);
-            document.getElementById('prescription-list').innerHTML = h;
-        }
-
-        function finishExamination() {
-            if(!data.currentPatient) return;
-            if(!data.archive) data.archive = [];
-            data.archive.push({...data.currentPatient, date: new Date().toLocaleDateString(), diag: document.getElementById('diagnostic-text').value});
-            data.currentPatient = null;
-            data.examinedToday = (data.examinedToday || 0) + 1;
-            tempMeds = [];
-            document.getElementById('prescription-list').innerHTML = '';
-            document.getElementById('diagnostic-text').value = '';
-            sync();
-        }
-
-        function printDocument() {
-            if(!data.currentPatient) return;
-            document.getElementById('print-clinic-name').innerText = data.settings.name;
-            document.getElementById('print-patient-name').innerText = data.currentPatient.name;
-            document.getElementById('print-date').innerText = new Date().toLocaleDateString();
-            let h = '';
-            tempMeds.forEach(m => h += `<p>• <b>${m.n}</b> : ${m.d}</p>`);
-            document.getElementById('print-document-content').innerHTML = h;
-            window.print();
-        }
-
-        function sync() { db.ref('clinic_main_data').set(data); }
-
-        function exportDatabase() {
-            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-            a.download = `backup_clinique.json`; a.click();
-        }
+        function secureTab(id, btn) { if(prompt("Code Médecin:") === "1234") showTab(id, btn); }
     </script>
 </body>
 </html>
+
 
 
 
