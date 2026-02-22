@@ -2,82 +2,173 @@
 <html lang="fr" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clinique Pro - Fixed Tabs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion de Clinique - Cloud Sync</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <style>
         :root {
-            --primary: #0284c7; --doctor: #059669; --bg: #f8fafc;
-            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --primary-color: #0284c7; --doctor-color: #059669; --archive-color: #7c3aed; 
+            --stats-color: #db2777; --settings-color: #ea580c; --bg-color: #f1f5f9; 
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
         }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #1e293b; }
-        
-        .header { background: #fff; padding: 15px; border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 15px; text-align: center; border: 1px solid #e2e8f0; }
-        .header h1 { margin: 0; font-size: 20px; color: #0f172a; }
-
-        .tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 15px; }
-        .tab-btn { padding: 15px 5px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .tab-btn.active { color: white; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .tab-reception.active { background: var(--primary); }
-        .tab-doctor.active { background: var(--doctor); }
-
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; color: #334155; }
+        #print-area { display: none; }
+        .header { background: #fff; padding: 20px; border-radius: 16px; box-shadow: var(--card-shadow); margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 15px; border: 1px solid #e2e8f0; }
+        .header h1 { margin: 0; color: #0f172a; font-weight: 800; font-size: 28px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; justify-content: center; flex-wrap: wrap; }
+        .tab-btn { padding: 12px 20px; cursor: pointer; background: white; border: 1px solid #e2e8f0; border-radius: 9999px; font-size: 14px; font-weight: 700; color: #475569; transition: all 0.3s; position: relative; }
+        .tab-btn.active { color: white; border-color: transparent; }
+        .tab-reception.active { background: var(--primary-color); }
+        .tab-doctor.active { background: var(--doctor-color); }
+        .tab-archive.active { background: var(--archive-color); }
+        .tab-stats.active { background: var(--stats-color); }
+        .tab-settings.active { background: var(--settings-color); }
         .panel { display: none; }
-        .panel.active { display: block; }
-
-        .card { background: white; padding: 15px; border-radius: 15px; box-shadow: var(--shadow); border: 1px solid #e2e8f0; margin-bottom: 15px; }
-        h3 { margin: 0 0 15px 0; font-size: 17px; color: #334155; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
-
-        input, textarea { width: 100%; padding: 14px; margin-bottom: 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 16px; background: #fdfdfd; outline: none; }
-        
-        .btn { width: 100%; padding: 15px; border: none; border-radius: 10px; color: white; font-weight: 800; font-size: 16px; cursor: pointer; display: block; }
-        .btn-primary { background: var(--primary); }
-        .btn-success { background: var(--doctor); }
-
-        .list-item { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-        .btn-entrer { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
-        
-        .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 12px; width: 100%; text-align: center; }
-        .status-busy { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
-        .status-free { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .panel.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .card { background: white; padding: 25px; border-radius: 16px; box-shadow: var(--card-shadow); border: 1px solid #e2e8f0; }
+        .card h3 { margin-top: 0; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; font-weight: 700;}
+        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; background: #f8fafc; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; color: white; font-weight: 700; cursor: pointer; }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-success { background-color: var(--doctor-color); }
+        .btn-outline { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); width: auto; padding: 8px 16px; border-radius: 8px; }
+        .waiting-list li { padding: 16px; background: #f8fafc; border-radius: 10px; margin-bottom: 12px; border-left: 5px solid var(--primary-color); display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; border-left-width: 5px; }
+        .compact-banner { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 12px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .compact-banner.active { background: #ecfdf5; border-color: #a7f3d0; border-left: 5px solid #059669; }
+        .med-item { background: #fff; border: 1px solid #ddd; padding: 8px 12px; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;}
+        @media print {
+            .no-print { display: none !important; }
+            @page { margin: 0; size: A5 portrait; }
+            body { background: white; padding: 0; }
+            #print-area { display: flex; flex-direction: column; height: 100vh; position: relative; overflow: hidden; }
+            .top-shape-dark { position: absolute; top: 0; right: 0; width: 60%; height: 75px; background: #0d8a57; border-bottom-left-radius: 80px; display: flex; justify-content: flex-end; padding: 10px 25px; color: white; font-size: 12px; }
+            .print-header { display: flex; justify-content: space-between; padding: 35px 25px 5px; position: relative; align-items: flex-end; }
+            .print-logo img { width: 65px; height: 65px; object-fit: contain; }
+            .patient-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px 25px; font-size: 12px; font-weight: bold;}
+            .print-body { flex-grow: 1; padding: 20px 25px; font-size: 16px; }
+            .footer-shape-dark { position: absolute; bottom: 0; left: 0; width: 100%; height: 60px; background: #0d8a57; display: flex; justify-content: center; align-items: center; color: white; font-size: 11px; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="header"><h1>🏥 Gestion Clinique</h1></div>
+    <div class="no-print">
+        <div class="header">
+            <img id="main-header-logo" src="" style="height: 45px; display: none;">
+            <h1>Gestion de Clinique</h1>
+        </div>
 
-    <div class="tabs">
-        <button id="btn-tab-reception" class="tab-btn tab-reception active" onclick="showTab('reception', this)">📋 Réception</button>
-        <button id="btn-tab-doctor" class="tab-btn tab-doctor" onclick="secureTab('doctor', this)">🩺 Médecin</button>
+        <div class="tabs">
+            <div class="tab-btn tab-reception active" onclick="showTab('reception', this)">👩‍💻 Réception</div>
+            <div class="tab-btn tab-doctor" onclick="secureTab('doctor', this)">🩺 Médecin</div>
+            <div class="tab-btn tab-archive" onclick="secureTab('archive', this)">🗂️ Archives</div>
+            <div class="tab-btn tab-stats" onclick="secureTab('stats', this)">📊 Statistiques</div>
+            <div class="tab-btn tab-settings" onclick="secureTab('settings', this)">⚙️ Paramétrage</div>
+        </div>
+
+        <div id="reception" class="panel active">
+            <div class="grid">
+                <div class="card">
+                    <h3>➕ Nouveau Patient</h3>
+                    <label>Nom :</label><input type="text" id="new-patient-name">
+                    <label>Âge :</label><input type="number" id="new-patient-age">
+                    <button class="btn btn-primary" onclick="addPatient()">Ajouter</button>
+                </div>
+                <div class="card">
+                    <div id="reception-compact-banner" class="compact-banner">
+                        <span style="font-weight: bold;">🩺 Cabinet :</span>
+                        <span id="reception-current-patient-name">(Vide)</span>
+                    </div>
+                    <h3>📋 Salle d'attente</h3>
+                    <ul class="waiting-list" id="reception-waiting-list" style="list-style:none; padding:0;"></ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="doctor" class="panel">
+            <div class="grid">
+                <div class="card" style="border-top: 5px solid var(--doctor-color);">
+                    <h3>🔔 Consultation</h3>
+                    <div id="current-patient-box" style="background:#f0fdf4; padding:15px; border-radius:12px; margin-bottom:15px; text-align:center;">
+                        <h4 id="current-patient-name" style="margin:0;">En attente...</h4>
+                    </div>
+                    <label>Diagnostic :</label><textarea id="diagnostic-text" rows="2"></textarea>
+                    <div style="background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #eee; margin-bottom:15px;">
+                        <label>💊 Ordonnance :</label>
+                        <div style="display:flex; gap:5px; margin-bottom:10px;">
+                            <input type="text" id="med-name" placeholder="Médicament" style="flex:2; margin:0;">
+                            <input type="number" id="med-qte" placeholder="Bte" style="flex:0.5; margin:0;">
+                            <input type="text" id="med-posology" placeholder="Fois/j" style="flex:0.5; margin:0;">
+                            <button class="btn btn-success" style="width:auto; padding:10px;" onclick="addMedicine()">➕</button>
+                        </div>
+                        <ul id="prescription-list" style="list-style:none; padding:0;"></ul>
+                        <button class="btn btn-primary" onclick="printDocument()">🖨️ Imprimer</button>
+                    </div>
+                    <button class="btn btn-success" onclick="finishExamination()">✅ Terminer</button>
+                </div>
+                <div class="card"><h3>👥 Suivants</h3><ul class="waiting-list" id="doctor-waiting-list" style="list-style:none; padding:0;"></ul></div>
+            </div>
+        </div>
+
+        <div id="archive" class="panel">
+            <div class="card" style="max-width:800px; margin:auto;">
+                <h3>🔍 Archives</h3>
+                <input type="text" id="search-input" onkeyup="searchArchive()" placeholder="Rechercher...">
+                <div id="search-results" style="margin-top:20px;"></div>
+            </div>
+        </div>
+
+        <div id="stats" class="panel">
+            <div class="card" style="max-width:600px; margin:auto;">
+                <h3>📊 Statistiques</h3>
+                <label>Du :</label><input type="date" id="stat-start-date">
+                <label>Au :</label><input type="date" id="stat-end-date">
+                <button class="btn btn-primary" onclick="calculateStats()">Calculer</button>
+                <div id="stat-results-box" style="display:none; text-align:center; padding:20px; font-size:24px;">Total: <strong id="stat-filtered-count">0</strong></div>
+            </div>
+        </div>
+
+        <div id="settings" class="panel">
+            <div class="grid">
+                <div class="card">
+                    <h3>⚙️ Clinique</h3>
+                    <label>Docteur :</label><input type="text" id="clinic-name" onchange="saveSettings()">
+                    <label>Spécialité :</label><input type="text" id="clinic-specialty" onchange="saveSettings()">
+                    <label>Adresse :</label><input type="text" id="clinic-address" onchange="saveSettings()">
+                    <label>Tel :</label><input type="text" id="clinic-phone" onchange="saveSettings()">
+                    <label>Logo :</label><input type="file" accept="image/*" onchange="handleLogo(event)">
+                </div>
+                <div class="card">
+                    <h3>💾 Backup</h3>
+                    <button class="btn btn-primary" style="margin-bottom: 10px;" onclick="exportDatabase()">📥 Télécharger</button>
+                    <label>Restaurer :</label><input type="file" accept=".json" onchange="importDatabase(event)">
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="reception" class="panel active">
-        <div class="card">
-            <h3>➕ Nouveau Patient</h3>
-            <input type="text" id="p-name" placeholder="Nom du patient">
-            <input type="number" id="p-age" placeholder="Âge">
-            <button class="btn btn-primary" onclick="addPatient()">Ajouter à la liste</button>
+    <div id="print-area">
+        <div class="top-shape-dark"><span>ORDONNANCE</span></div>
+        <div class="print-header">
+            <div class="print-logo"><img id="print-logo-img" src=""></div>
+            <div class="print-clinic-info"><h1 id="print-clinic-name"></h1><p id="print-clinic-specialty"></p></div>
         </div>
-
-        <div class="card">
-            <div id="status-area"></div>
-            <h3>👥 Salle d'attente</h3>
-            <div id="waiting-list"></div>
+        <div class="patient-info-grid">
+            <div>Nom: <span id="print-patient-name"></span></div>
+            <div>Date: <span id="print-date"></span></div>
+            <div>Âge: <span id="print-patient-age"></span></div>
         </div>
-    </div>
-
-    <div id="doctor" class="panel">
-        <div class="card">
-            <h3 id="current-p-display">🩺 Consultation</h3>
-            <textarea id="diag" placeholder="Observations et traitement..." rows="6"></textarea>
-            <button class="btn btn-success" onclick="finish()">✅ Terminer le Patient</button>
-        </div>
+        <div class="print-body"><div id="print-document-content"></div></div>
+        <div class="footer-shape-dark"><span id="print-footer-phone"></span> &nbsp; | &nbsp; <span id="print-footer-address"></span></div>
     </div>
 
     <script>
+        // إعدادات Firebase الخاصة بك
         const firebaseConfig = {
             apiKey: "AIzaSyDBYw9gZW-8uvZo6s3DGJhdWEInyPxvNn8",
             authDomain: "myclinic-c1ae8.firebaseapp.com",
@@ -90,99 +181,50 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let data = { waiting: [], archive: [], current: null };
+        const PIN = "1234";
 
-        // تحديث البيانات لحظياً من السحاب
-        db.ref('clinic_main_data').on('value', (snap) => {
-            if(snap.exists()) {
-                data = snap.val();
-                render();
-            }
-        });
+        let data = { 
+            waitingList: [], 
+            archive: [], 
+            currentPatient: null, 
+            settings: { name: "Dr. Zohra", specialty: "Gynécologie", address: "Constantine", phone: "0555...", logo: "" } 
+        };
+        let tempMeds = [];
 
-        function render() {
-            // تحديث قائمة الانتظار
-            const listDiv = document.getElementById('waiting-list');
-            listDiv.innerHTML = '';
-            (data.waiting || []).forEach(p => {
-                listDiv.innerHTML += `
-                    <div class="list-item">
-                        <span><b>${p.name}</b> (${p.age} ans)</span>
-                        <button class="btn-entrer" onclick="tryToDoctor(${p.id})">Entrer 🩺</button>
-                    </div>`;
+        window.onload = function() {
+            db.ref('clinic_main_data').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    data = snapshot.val();
+                    loadUI();
+                }
+            });
+            setInterval(syncData, 30000);
+        };
+
+        function syncData() { db.ref('clinic_main_data').set(data); }
+
+        function loadUI() {
+            const list = document.getElementById('reception-waiting-list');
+            const docList = document.getElementById('doctor-waiting-list');
+            list.innerHTML = ''; docList.innerHTML = '';
+            (data.waitingList || []).forEach(p => {
+                list.innerHTML += `<li><div><strong>${p.name}</strong><br><small>${p.age} ans | 🕒 ${p.time}</small></div>
+                                   <button class="btn btn-outline" onclick="toDoctor(${p.id})">Entrer</button></li>`;
+                docList.innerHTML += `<li>${p.name} (${p.age} ans)</li>`;
             });
 
-            // تحديث شارة الحالة في الاستقبال
-            const statusArea = document.getElementById('status-area');
-            if(data.current) {
-                statusArea.innerHTML = `<div class="status-badge status-busy">🔴 Médecin Occupée : ${data.current.name}</div>`;
-            } else {
-                statusArea.innerHTML = `<div class="status-badge status-free">🟢 Cabinet Libre</div>`;
+            if (data.currentPatient) {
+                document.getElementById('current-patient-name').innerText = data.currentPatient.name;
+                document.getElementById('reception-current-patient-name').innerText = data.currentPatient.name;
+                document.getElementById('reception-compact-banner').classList.add('active');
             }
 
-            // تحديث اسم المريض في صفحة الطبيبة
-            document.getElementById('current-p-display').innerText = data.current ? "🩺 Patient: " + data.current.name : "🩺 Cabinet Vide";
-        }
+            document.getElementById('clinic-name').value = data.settings.name;
+            if(data.settings.logo) {
+                document.getElementById('main-header-logo').src = data.settings.logo;
+                document.getElementById('main-header-logo').style.display = 'block';
+                document.
 
-        function addPatient() {
-            const n = document.getElementById('p-name'), a = document.getElementById('p-age');
-            if(!n.value) return alert("Veuillez saisir un nom !");
-            if(!data.waiting) data.waiting = [];
-            data.waiting.push({ id: Date.now(), name: n.value, age: a.value });
-            sync();
-            n.value = ''; a.value = '';
-        }
-
-        function tryToDoctor(id) {
-            // منع التوجيه إذا كانت الطبيبة مشغولة
-            if(data.current) {
-                alert("Impossible : Le cabinet est déjà occupé par " + data.current.name);
-                return;
-            }
-
-            const idx = data.waiting.findIndex(x => x.id === id);
-            data.current = data.waiting.splice(idx, 1)[0];
-            sync();
-            
-            // هنا التعديل: لا نقوم باستدعاء showTab ليبقى المستخدم في نفس الصفحة
-            alert("Patient dirigé vers le médecin !");
-        }
-
-        function finish() {
-            if(!data.current) return;
-            if(!data.archive) data.archive = [];
-            data.archive.push({
-                ...data.current,
-                diag: document.getElementById('diag').value,
-                date: new Date().toLocaleDateString()
-            });
-            data.current = null;
-            document.getElementById('diag').value = '';
-            sync();
-        }
-
-        function sync() {
-            db.ref('clinic_main_data').set(data);
-        }
-
-        function showTab(id, btn) {
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            btn.classList.add('active');
-        }
-
-        function secureTab(id, btn) {
-            const code = prompt("Code Médecin :");
-            if(code === "1234") {
-                showTab(id, btn);
-            } else {
-                alert("Code Incorrect !");
-            }
-        }
-    </script>
-</body>
-</html>
 
 
 
