@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion de Clinique - Cloud Sync</title>
+    <title>Gestion de Clinique - Cloud Sync Final</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -27,11 +27,12 @@
         .tab-stats.active { background: var(--stats-color); }
         .tab-settings.active { background: var(--settings-color); }
         .panel { display: none; }
-        .panel.active { display: block; }
+        .panel.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         .card { background: white; padding: 25px; border-radius: 16px; box-shadow: var(--card-shadow); border: 1px solid #e2e8f0; }
         input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; background: #f8fafc; }
-        .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; color: white; font-weight: 700; cursor: pointer; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; color: white; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .btn-primary { background-color: var(--primary-color); }
         .btn-success { background-color: var(--doctor-color); }
         .btn-outline { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); width: auto; padding: 8px 16px; border-radius: 8px; }
@@ -166,7 +167,7 @@
     </div>
 
     <script>
-        // دمج بيانات Firebase الخاصة بك
+        // 1. Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyDBYw9gZW-8uvZo6s3DGJhdWEInyPxvNn8",
             authDomain: "myclinic-c1ae8.firebaseapp.com",
@@ -180,34 +181,32 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // 2. Variables
         const PIN = "1234";
         let data = { waiting: [], archive: [], current: null, settings: { name: "Dr. Zohra", specialty: "Gynécologie", address: "Constantine", phone: "0555...", logo: "" } };
         let tempMeds = [];
 
+        // 3. Functions
         window.onload = () => {
-            // جلب البيانات من السحابة فور الفتح
             db.ref('clinic_main_data').once('value').then((snapshot) => {
                 if (snapshot.exists()) {
                     data = snapshot.val();
-                    loadUI();
                 } else {
                     const saved = localStorage.getItem('clinic_db');
-                    if (saved) { data = JSON.parse(saved); loadUI(); }
+                    if (saved) data = JSON.parse(saved);
                 }
+                loadUI();
             });
-            // مزامنة صامتة كل 30 ثانية
-            setInterval(saveData, 30000);
+            setInterval(saveData, 30000); // صامتة
         };
 
         function saveData() {
-            // تحديث قيم الإعدادات قبل الحفظ
             if(document.getElementById('clinic-name')) {
                 data.settings.name = document.getElementById('clinic-name').value;
                 data.settings.specialty = document.getElementById('clinic-specialty').value;
                 data.settings.address = document.getElementById('clinic-address').value;
                 data.settings.phone = document.getElementById('clinic-phone').value;
             }
-            // حفظ محلي وسحابي
             localStorage.setItem('clinic_db', JSON.stringify(data));
             db.ref('clinic_main_data').set(data);
         }
@@ -215,18 +214,28 @@
         function loadUI() {
             const list = document.getElementById('reception-waiting-list');
             const docList = document.getElementById('doctor-waiting-list');
+            if(!list || !docList) return;
+
             list.innerHTML = ''; docList.innerHTML = '';
             data.waiting.forEach(p => {
                 list.innerHTML += `<li><div><strong>${p.name}</strong><br><small>${p.age} ans | 🕒 ${p.time}</small></div>
                 <button class="btn btn-outline" onclick="toDoctor(${p.id})">Entrer</button></li>`;
                 docList.innerHTML += `<li>${p.name} (${p.age} ans)</li>`;
             });
+
             if (data.current) {
                 document.getElementById('current-patient-name').innerText = data.current.name;
                 document.getElementById('reception-current-patient-name').innerText = data.current.name;
                 document.getElementById('reception-compact-banner').classList.add('active');
             }
-            document.getElementById('clinic-name').value = data.settings.name;
+            
+            if(document.getElementById('clinic-name')) {
+                document.getElementById('clinic-name').value = data.settings.name;
+                document.getElementById('clinic-specialty').value = data.settings.specialty;
+                document.getElementById('clinic-address').value = data.settings.address;
+                document.getElementById('clinic-phone').value = data.settings.phone;
+            }
+
             if(data.settings.logo) {
                 document.getElementById('main-header-logo').src = data.settings.logo;
                 document.getElementById('main-header-logo').style.display = 'block';
@@ -234,23 +243,22 @@
             }
         }
 
-        function secureTab(id, btn) {
-            if(prompt("Code PIN:") === PIN) showTab(id, btn); else alert("Code incorrect!");
-        }
-
-        function showTab(id, btn) {
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            btn.classList.add('active');
-        }
-
         function addPatient() {
-            let n = document.getElementById('new-patient-name').value, a = document.getElementById('new-patient-age').value;
-            if(!n) return;
-            data.waiting.push({ id: Date.now(), name: n, age: a, time: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) });
-            saveData(); loadUI();
-            document.getElementById('new-patient-name').value = ''; document.getElementById('new-patient-age').value = '';
+            let n = document.getElementById('new-patient-name').value;
+            let a = document.getElementById('new-patient-age').value;
+            if(!n) { alert("Nom requis!"); return; }
+            
+            data.waiting.push({ 
+                id: Date.now(), 
+                name: n, 
+                age: a, 
+                time: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) 
+            });
+            
+            saveData();
+            loadUI();
+            document.getElementById('new-patient-name').value = ''; 
+            document.getElementById('new-patient-age').value = '';
         }
 
         function toDoctor(id) {
@@ -258,6 +266,34 @@
             data.current = data.waiting.splice(idx, 1)[0];
             saveData(); loadUI();
             showTab('doctor', document.querySelector('.tab-doctor'));
+        }
+
+        function finishExamination() {
+            if(!data.current) return;
+            data.archive.push({
+                ...data.current, 
+                date: new Date().toLocaleDateString('fr-FR'), 
+                iso: new Date().toISOString().split('T')[0], 
+                diag: document.getElementById('diagnostic-text').value, 
+                meds: [...tempMeds]
+            });
+            data.current = null; tempMeds = [];
+            document.getElementById('prescription-list').innerHTML = '';
+            document.getElementById('diagnostic-text').value = '';
+            document.getElementById('reception-current-patient-name').innerText = '(Vide)';
+            document.getElementById('reception-compact-banner').classList.remove('active');
+            saveData(); loadUI();
+        }
+
+        function secureTab(id, btn) {
+            if(prompt("Code PIN:") === PIN) showTab(id, btn); else alert("Accès refusé!");
+        }
+
+        function showTab(id, btn) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active');
         }
 
         function addMedicine() {
@@ -268,16 +304,6 @@
             tempMeds.forEach((m, i) => h += `<li class="med-item"><strong>${m.n}</strong> <span>${m.q} bte - ${m.p} /jrs</span> <button onclick="tempMeds.splice(${i},1);addMedicine()">❌</button></li>`);
             document.getElementById('prescription-list').innerHTML = h;
             document.getElementById('med-name').value = '';
-        }
-
-        function finishExamination() {
-            if(!data.current) return;
-            data.archive.push({...data.current, date: new Date().toLocaleDateString('fr-FR'), iso: new Date().toISOString().split('T')[0], diag: document.getElementById('diagnostic-text').value, meds: [...tempMeds]});
-            data.current = null; tempMeds = [];
-            document.getElementById('prescription-list').innerHTML = '';
-            document.getElementById('reception-current-patient-name').innerText = '(Vide)';
-            document.getElementById('reception-compact-banner').classList.remove('active');
-            saveData(); loadUI();
         }
 
         function printDocument() {
@@ -300,6 +326,15 @@
             let h = '';
             data.archive.filter(r => r.name.toLowerCase().includes(q)).forEach(r => h += `<div class="card" style="margin-bottom:10px;"><h4>${r.name} (${r.date})</h4><p>Diag: ${r.diag}</p></div>`);
             document.getElementById('search-results').innerHTML = h || "Aucun résultat";
+        }
+
+        function calculateStats() {
+            const start = document.getElementById('stat-start-date').value;
+            const end = document.getElementById('stat-end-date').value;
+            if(!start || !end) return;
+            const filtered = data.archive.filter(r => r.iso >= start && r.iso <= end);
+            document.getElementById('stat-filtered-count').innerText = filtered.length;
+            document.getElementById('stat-results-box').style.display = 'block';
         }
 
         function handleLogo(e) {
